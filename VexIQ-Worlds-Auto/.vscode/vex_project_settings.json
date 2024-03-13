@@ -1,0 +1,18 @@
+{
+	"project": {
+		"name": "VexIQ-Worlds-Auto",
+		"slot": 2,
+		"description": "",
+		"platform": "IQ2",
+		"creationDate": "Wed, 13 Mar 2024 14:05:39 GMT",
+		"language": "cpp",
+		"sdkVersion": "IQ2_20230627_09_00_00",
+		"cpp": {
+			"includePath": []
+		}
+	},
+	"extension": {
+		"version": "0.5.0",
+		"json": 1
+	}
+}
