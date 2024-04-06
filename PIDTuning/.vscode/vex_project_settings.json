@@ -1,0 +1,19 @@
+{
+	"extension": {
+		"version": "0.5.0",
+		"json": 2
+	},
+	"project": {
+		"name": "PIDTuning",
+		"description": "",
+		"creationDate": "3/31/2024, 4:27:18 PM",
+		"platform": "IQ2",
+		"language": "cpp",
+		"slot": 2,
+		"sdkVersion": "IQ2_20230627_09_00_00",
+		"cpp": {
+			"includePath": [],
+			"printf_float": false
+		}
+	}
+}

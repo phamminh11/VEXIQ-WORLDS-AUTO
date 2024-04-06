@@ -30,8 +30,8 @@ brain Brain;
 inertial BrainInertial = inertial();
 motor LM = motor(PORT1, false);
 motor RM = motor(PORT7, true);
-motor IntakeMotorA = motor(PORT2, true);
-motor IntakeMotorB = motor(PORT8, false);
+motor IntakeMotorA = motor(PORT3, false);
+motor IntakeMotorB = motor(PORT9, true);
 motor_group Intake = motor_group(IntakeMotorA, IntakeMotorB);
 
 /*vex-vision-config:begin*/
@@ -55,8 +55,8 @@ bool RemoteControlCodeEnabled = true;
 
 // Allows for easier use of the VEX Library
 using namespace vex;
-double prevTime = 0, curTime = 0;
-float minSpeed = 0.0;
+double PREV_TIME = 0, CURRENT_TIME = 0;
+float MINSPEED = 0.0;
 
 const char* printToBrain_numberFormat(int precision) {
   // look at the current precision setting to find the format string
@@ -70,21 +70,22 @@ const char* printToBrain_numberFormat(int precision) {
 }
 
 bool runIntake = false;
-void RunIntake(){
-  int dem = 0;
+void RunIntake(float DELAY){
+  int COUNT = 0;
   runIntake = true;
+  wait(DELAY, seconds);
   while (runIntake){
-    if(dem >= 50){
+    if(COUNT >= 50){
       Intake.spin(reverse);
       wait(0.5, seconds);
       Intake.spin(forward);
-      dem = 0;
+      COUNT = 0;
     }
     Intake.spin(forward);
     if(Intake.velocity(percent) == 0.0)
-      dem+=1;
+      COUNT+=1;
     else
-      dem = 0;
+      COUNT = 0;
     wait(5,msec);
   }
   Intake.stop();
@@ -92,78 +93,90 @@ void RunIntake(){
 
 void UpdateTimer(){
   while (true){
-    curTime = Brain.Timer.value();
+    CURRENT_TIME = Brain.Timer.value();
     wait(10, msec);
-    prevTime = curTime;
+    PREV_TIME = CURRENT_TIME;
   }
 }
 
 class PID{
   public:
-  float Kp, Kd, Ki;
-  void setup(float p, float i, float d){
-    Kp = p; Ki = i; Kd = d;
+  float Kpr, Kdr, Kir;
+  float Kpm, Kdm, Kim;
+  void setup_rotate(float p, float i, float d){
+    Kpr = p; Kir = i; Kdr = d;
+  }
+  void setup_move(float p, float i, float d){
+    Kpm = p; Kim = i; Kdm = d;
   }
 
-  void Turn(float heading){
-    float prevError = heading-BrainInertial.rotation(degrees);
-    int dem = 0, maxWaitTime = 10;
+  void Turn(float HEADING){
+    float PREV_ERROR = HEADING-BrainInertial.rotation(degrees);
+    float INTEGRAL = 0.0;
+    int COUNT = 0, MAXCOUNT = 10;
     RM.spin(forward); LM.spin(forward);
-    while ( dem < maxWaitTime ){
+    while ( COUNT < MAXCOUNT ){
       float cur_angle = BrainInertial.rotation(degrees);
-      float error = heading-cur_angle;
-      float output = abs(Kp * error + Kd*(error-prevError)/ (curTime-prevTime) + Ki*(error-prevError)*(curTime-prevTime)) * 0.5;
-      float vl, vr;
-      if(cur_angle < heading)
-        vl = output, vr = -output;
+      float ERROR = HEADING-cur_angle;
+      INTEGRAL += Kir*(ERROR-PREV_ERROR)*(CURRENT_TIME-PREV_TIME);
+      float OUTPUT = abs(Kpr * ERROR + Kdr*(ERROR-PREV_ERROR)/ (CURRENT_TIME-PREV_TIME) + INTEGRAL) * 0.5;
+      float VL, VR;
+      if(cur_angle < HEADING)
+        VL = OUTPUT, VR = -OUTPUT;
       else
-        vl = -output, vr = output;
-      if(vr < minSpeed && vr > 0.0) vr = minSpeed; //Make sure the robot is still moving very slowly
-      if(vl < minSpeed && vl > 0.0) vl = minSpeed;
-      if(vr > -minSpeed && vr < 0.0) vr = -minSpeed;
-      if(vl > -minSpeed && vl < 0.0) vl = -minSpeed;
-      LM.setVelocity(vl, percent); RM.setVelocity(vr, percent);
-      if( abs(cur_angle - heading) <= 2.0)
-        dem+=1;
+        VL = -OUTPUT, VR = OUTPUT;
+      if(VR < MINSPEED && VR > 0.0) VR = MINSPEED; //Make sure the robot is still moving very slowly
+      if(VL < MINSPEED && VL > 0.0) VL = MINSPEED;
+      if(VR > -MINSPEED && VR < 0.0) VR = -MINSPEED;
+      if(VL > -MINSPEED && VL < 0.0) VL = -MINSPEED;
+      LM.setVelocity(VL, percent); RM.setVelocity(VR, percent);
+      if( abs(cur_angle - HEADING) <= 2.5)
+        COUNT+=1;
       else
-        dem=0;
+        COUNT=0;
       wait(10,msec);
-      prevError = error;
+      PREV_ERROR = ERROR;
     }
     RM.stop(); LM.stop();
   }
 
-  void Move(float dist, float brake_dist, float heading, float speed){
-    float prevError = heading-BrainInertial.rotation(degrees);
-    float prevTickL,prevTickR;
+  void Move(float DIST, float ACCEL_DIST, float BRAKE_DIST, float HEADING, float SPEED){
+    float PREV_ERROR = HEADING-BrainInertial.rotation(degrees);
+    float PREV_TICK_L,PREV_TICK_R;
+    float ORIGINAL_DIST = DIST;
     LM.setPosition(0, degrees);   RM.setPosition(0, degrees);
-    int dem = 0,    maxWaitTime = 20;
+    int COUNT = 0,    MAXCOUNT = 18;
     RM.spin(forward), LM.spin(forward);
-    if(speed < 0)
+    if(SPEED < 0)
       RM.spin(reverse), LM.spin(reverse);
-    while (dist > 0 && dem < maxWaitTime){
-      prevTickL = LM.position(turns); 
-      prevTickR = RM.position(turns);
+    while (DIST > 0 && COUNT < MAXCOUNT){
+      PREV_TICK_L = LM.position(turns); 
+      PREV_TICK_R = RM.position(turns);
       float curGoc = BrainInertial.rotation(degrees);
-      float error = heading - curGoc;
-      float output = (Kp * error + Kd*(error-prevError)/(curTime-prevTime)) * 0.8;
-      float output_speed_ratio = dist/brake_dist;
-      if(output_speed_ratio >= 1.0)   output_speed_ratio = 1.0;
-      float VR = speed*output_speed_ratio-output,   VL = speed*output_speed_ratio+output;
-      if(VR < minSpeed && VR > 0.0) VR = minSpeed; //Make sure the robot is still moving very slowly
-      if(VL < minSpeed && VL > 0.0) VL = minSpeed;
-      if(VR > -minSpeed && VR < 0.0) VR = -minSpeed;
-      if(VL > -minSpeed && VL < 0.0) VL = -minSpeed;
-      RM.setVelocity(VR   , percent);
-      LM.setVelocity(VL  , percent);
-      if( ( abs(LM.velocity(percent)) < 2.0 && abs(RM.velocity(percent)) < 2.0  ) || dist <= 20.0)
-        dem+=1;
+      float ERROR = HEADING - curGoc;
+      float OUTPUT = (Kpm * ERROR + Kdm*(ERROR-PREV_ERROR)/(CURRENT_TIME-PREV_TIME)) * 0.5;
+      float OUTPUT_MUL = 1.0;
+      if(ORIGINAL_DIST > DIST > ORIGINAL_DIST-ACCEL_DIST){
+        OUTPUT_MUL = (ORIGINAL_DIST-DIST)/ACCEL_DIST;
+        if(OUTPUT_MUL > 0.7) OUTPUT_MUL = 0.7;
+      }
+      else if(BRAKE_DIST > DIST > 0.0)
+        OUTPUT_MUL = DIST/BRAKE_DIST;
+      float VR = SPEED*OUTPUT_MUL-OUTPUT,   VL = SPEED*OUTPUT_MUL+OUTPUT;
+      if(VR < MINSPEED && VR > 0.0) VR = MINSPEED; //Make sure the robot is still moving very slowly
+      if(VL < MINSPEED && VL > 0.0) VL = MINSPEED;
+      if(VR > -MINSPEED && VR < 0.0) VR = -MINSPEED;
+      if(VL > -MINSPEED && VL < 0.0) VL = -MINSPEED;
+      RM.setVelocity(VR, percent);
+      LM.setVelocity(VL, percent);
+      if( ( abs(LM.velocity(percent)) == 0.0 && abs(RM.velocity(percent)) == 0.0  ) || DIST <= 20.0)
+        COUNT+=1;
       else
-        dem = 0;
+        COUNT = 0;
       wait(10, msec);
-      prevError = error;
-      float moved = abs( (RM.position(turns) - prevTickR + LM.position(turns) - prevTickL) * 199.49 ) * cos((curGoc-heading)/180.0 * 3.1415926 );
-      dist -= moved;
+      PREV_ERROR = ERROR;
+      float MOVED = abs( (RM.position(turns) - PREV_TICK_R + LM.position(turns) - PREV_TICK_L) * 199.49 ) * cos((curGoc-HEADING)/180.0 * 3.1415926 );
+      DIST -= MOVED;
     }
     RM.stop(); LM.stop();
   }
@@ -180,11 +193,12 @@ void Graphing(){
   }
 }
 
-float Kp = 0.0, Kd = 0.0;
+float Kpr = 1.05, Kdr = 0.0, Kir = 40.1;
+float Kpm = 2.8, Kdm  = 0.12, Kim = 0.0;
 float targetAngle = 0.0;
 
 int main() {
-  minSpeed = 5.5;
+  MINSPEED = 13.0;
   Intake.setVelocity(100, percent);
   Elevator.setStopping(hold);
   Elevator.setPosition(0, degrees);
@@ -197,51 +211,33 @@ int main() {
   BrainInertial.setRotation(0, degrees);
   Brain.Screen.print("Calibrated");
   thread printrot = thread(Graphing);
-  PID pid; 
-  pid.setup(Kp, 0.0, Kd);
-  while (true){
-    Brain.Screen.print(printToBrain_numberFormat(3), static_cast<float>(Kp));
-    Brain.Screen.print("  ");
-    Brain.Screen.print(printToBrain_numberFormat(3), static_cast<float>(Kd));
-    Brain.Screen.newLine();
-    if(Controller.ButtonEUp.pressing()) //KP INCREASE
-      Kp += 0.01;
-    if(Controller.ButtonEDown.pressing()) //KP DECREASE
-      Kp -= 0.01;
-    if(Controller.ButtonFUp.pressing()) //KD INCREASE
-      Kd += 0.01;
-    if(Controller.ButtonFDown.pressing()) //KD DECREASE
-      Kd -= 0.01;
-    if(Controller.ButtonRUp.pressing()){ //TURN RIGHT 90 DEGREE
-      targetAngle += 90.0;
-      pid.setup(Kp, 0.0, Kd);
-      pid.Turn(targetAngle);
-    }
-    if(Controller.ButtonLUp.pressing()){ //TURN LEFT 90 DEGREE
-      targetAngle -= 90.0;
-      pid.setup(Kp, 0.0, Kd);
-      pid.Turn(targetAngle);
-    }
-    wait(0.1, seconds);
-  }
 
-  //GyroTurn(90.0, 1.1, 0.8);
-  // thread runIntake = thread(RunIntake);
-  // StopIntake();
-  // Intake.spin(reverse);
-  // for(int i = 0; i < 6; i++){
-  //   GyroMove(1000.0, 150.0, -7.5, 75.0, 0.5, 0.1);
-  //   runIntake = thread(RunIntake);
-  //   GyroMove(200.0, 50.0, 0.0, -75.0, 0.6, 0.1);
-  //   GyroMove(200.0, 50.0, 0.0, 75.0, 0.6, 0.1);
-  //   GyroMove(200.0, 50.0, 0.0, -75.0, 0.6, 0.1);
-  //   GyroMove(200.0, 50.0, 0.0, 75.0, 0.6, 0.1);
-  //   GyroMove(200.0, 50.0, 0.0, -75.0, 0.6, 0.1);
-  //   GyroMove(200.0, 50.0, 0.0, 75.0, 0.6, 0.1);
-  //   GyroMove(200.0, 50.0, 0.0, -75.0, 0.5, 0.1);
-  //   StopIntake();
-  //   wait(0.5, seconds);
-  //   Intake.spin(reverse);
-  //   GyroTurn(-7.6, 1.3, 0.5);
-  // }
+  PID pid; 
+  pid.setup_rotate(Kpr, Kir, Kdr);
+  pid.setup_move(Kpm, Kim, Kdm);
+  
+  thread intake_t = thread([]{RunIntake(0);});
+  pid.Move(1500.0, 500.0, 150.0, 0.0, 60.0);
+  wait(0.1, seconds);
+  runIntake = false;
+  pid.Turn(110.0);
+  Intake.spin(reverse);
+  //pid.setup_rotate(4.0, Kdr, Kir);
+  for(int i = 0; i < 4; i++){
+    pid.Move(1000.0, 0.0, 150.0, 90.0, 80.0);
+    if(i == 0)
+      intake_t = thread([]{RunIntake(1.0);});
+    pid.Move(300.0, 0.0, 150.0, 90.0, -60.0);
+    pid.Move(300.0, 0.0, 150.0, 90.0, 80.0);
+    pid.Move(300.0, 0.0, 150.0, 90.0, -60.0);
+    pid.Move(300.0, 0.0, 150.0, 90.0, 80.0);
+    pid.Move(200.0, 0.0, 150.0, 90.0, -60.0);
+    //pid.Turn(60.0);
+    LM.spin(forward); RM.spin(forward);
+    LM.setVelocity(-50.0, percent); RM.setVelocity(50.0, percent);
+    wait(0.72, seconds);
+    LM.stop(); RM.stop(); 
+    wait(0.2, seconds);
+  }
+  runIntake = false;
 }
