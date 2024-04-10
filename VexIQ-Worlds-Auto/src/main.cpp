@@ -215,7 +215,39 @@ public:
     LM.stop();
   }
 };
+class KalmanFilter
+{
+private:
+  double Q;
+  double R;
+  double P = 1;
+  double K = 0;
+  double X[4];
 
+public:
+  KalmanFilter(double processNoise, double measurementNoise, double estimatedError, double initialPos,
+               double initialVelocity, double initialAccleration)
+  {
+    Q = processNoise;
+    R = measurementNoise;
+    P = estimatedError;
+  }
+  void predict()
+  {
+  }
+  void update(double measurement)
+  {
+  }
+  double getPosition()
+  {
+  }
+  double getVelocity()
+  {
+  }
+  double getAccleration()
+  {
+  }
+};
 void graphing()
 {
   while (true)
