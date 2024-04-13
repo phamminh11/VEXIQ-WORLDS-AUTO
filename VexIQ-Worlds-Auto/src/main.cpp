@@ -52,7 +52,7 @@ bool RemoteControlCodeEnabled = true;
 // Allows for easier use of the VEX Library
 using namespace vex;
 double previousTime = 0, currentTime = 0;
-float minSpeed = 0.0;
+float minRotSpeed = 0.0, minMoveSpeed;
 
 
 bool runIntake = false;
@@ -126,17 +126,17 @@ public:
         leftVelocity = output, rightVelocity = -output;
       else
         leftVelocity = -output, rightVelocity = output;
-      if (rightVelocity < minSpeed && rightVelocity > 0.5)
-        rightVelocity = minSpeed; // Make sure the robot is still moving very slowly
-      if (leftVelocity < minSpeed && leftVelocity > 0.5)
-        leftVelocity = minSpeed;
-      if (rightVelocity > -minSpeed && rightVelocity < -0.5)
-        rightVelocity = -minSpeed;
-      if (leftVelocity > -minSpeed && leftVelocity < -0.5)
-        leftVelocity = -minSpeed;
+      if (rightVelocity < minRotSpeed && rightVelocity > 0.5)
+        rightVelocity = minRotSpeed; // Make sure the robot is still moving very slowly
+      if (leftVelocity < minRotSpeed && leftVelocity > 0.5)
+        leftVelocity = minRotSpeed;
+      if (rightVelocity > -minRotSpeed && rightVelocity < -0.5)
+        rightVelocity = -minRotSpeed;
+      if (leftVelocity > -minRotSpeed && leftVelocity < -0.5)
+        leftVelocity = -minRotSpeed;
       LM.setVelocity(leftVelocity, percent);
       RM.setVelocity(rightVelocity, percent);
-      if (abs(currentAngle - heading) <= 2.5)
+      if (abs(currentAngle - heading) <= 2.6)
         count += 1;
       else
         count = 0;
@@ -154,7 +154,7 @@ public:
     float originalDistance = distance;
     LM.setPosition(0, degrees);
     RM.setPosition(0, degrees);
-    int count = 0, maxCount = 18;
+    int count = 0, maxCount = 15;
     RM.spin(forward), LM.spin(forward);
     if (speed < 0)
       RM.spin(reverse), LM.spin(reverse);
@@ -175,14 +175,14 @@ public:
       else if (breakeDistance >= distance && distance >= 0.0)
         output_MUL = distance / breakeDistance;
       float rightVelocity = speed * output_MUL - output, leftVelocity = speed * output_MUL + output;
-      if (rightVelocity < 45.0 && rightVelocity >= 0.0)
-        rightVelocity = 45.0; // Make sure the robot is still moving very slowly
-      if (leftVelocity < 45.0 && leftVelocity >= 0.0)
-        leftVelocity = 45.0;
-      if (rightVelocity > -45.0 && rightVelocity < 0.0)
-        rightVelocity = -45.0;
-      if (leftVelocity > -45.0 && leftVelocity < 0.0)
-        leftVelocity = -45.0;
+      if (rightVelocity < minMoveSpeed && rightVelocity >= 0.0)
+        rightVelocity = minMoveSpeed; // Make sure the robot is still moving very slowly
+      if (leftVelocity < minMoveSpeed && leftVelocity >= 0.0)
+        leftVelocity = minMoveSpeed;
+      if (rightVelocity > -minMoveSpeed && rightVelocity < 0.0)
+        rightVelocity = -minMoveSpeed;
+      if (leftVelocity > -minMoveSpeed && leftVelocity < 0.0)
+        leftVelocity = -minMoveSpeed;
       RM.setVelocity(rightVelocity, percent);
       LM.setVelocity(leftVelocity, percent);
       if ((abs(LM.velocity(percent)) == 0.0 && abs(RM.velocity(percent)) == 0.0))
@@ -199,46 +199,11 @@ public:
   }
 };
 
-void graphing()
-{
-  while (true)
-  {
-    double t = Brain.Timer.value();
-    printf("%.3f", t);
-    printf("    ");
-    printf("%.3f", BrainInertial.rotation(degrees));
-    printf("\n");
-    wait(0.1, seconds);
-  }
-}
-
 float Kpr = 0.8, Kdr = 0.1, Kir = 0.0; //Default PID rotation value
 float Kpm = 1.8, Kdm = 0.12, Kim = 0.0; //Defailt PID movement value
 float defaultAccelDistance = 500.0;
 float defaultBrakeDistance = 200.0;
 PID pid;
-
-void setup()
-{
-  minSpeed = 7.0;
-  Intake.setVelocity(100, percent);
-  Elevator.setStopping(hold);
-  Elevator.setPosition(0, degrees);
-  LM.setStopping(brake);
-  RM.setStopping(brake);
-  LM.setMaxTorque(100, percent);
-  RM.setMaxTorque(100, percent);
-  Intake.setMaxTorque(100, percent);
-  Elevator.setMaxTorque(100, percent);
-  thread updatetime = thread(UpdateTimer);
-  BrainInertial.calibrate();
-  wait(2.5, seconds);
-  BrainInertial.setRotation(0, degrees);
-  Brain.Screen.print("Calibrated");
-  thread printrot = thread(graphing);
-  pid.setupRotate(Kpr, Kir, Kdr);
-  pid.setupMove(Kpm, Kim, Kdm);
-}
 
 void clearSupplyZone()
 {
@@ -276,29 +241,53 @@ void clearSupplyZone()
   runIntake = false;
 }
 
+void setup()
+{
+  minRotSpeed = 7.2;
+  minMoveSpeed = 45.0;
+  Intake.setVelocity(100, percent);
+  Elevator.setStopping(hold);
+  Elevator.setPosition(0, degrees);
+  LM.setStopping(brake);
+  RM.setStopping(brake);
+  LM.setMaxTorque(100, percent);
+  RM.setMaxTorque(100, percent);
+  Intake.setMaxTorque(100, percent);
+  Elevator.setMaxTorque(100, percent);
+  thread updatetime = thread(UpdateTimer);
+  BrainInertial.calibrate();
+  wait(2.5, seconds);
+  BrainInertial.setRotation(0, degrees);
+  Brain.Screen.print("Calibrated");
+  pid.setupRotate(Kpr, Kir, Kdr);
+  pid.setupMove(Kpm, Kim, Kdm);
+}
+
 int main()
 {
   setup();
   //Autonomous path
-  pid.move(600.0, 10.0, 300.0, 0.0, 80.0);
+  pid.move(1200.0, 10.0, 300.0, 0.0, 80.0);
   wait(0.1, seconds);
   pid.turn(-90.0);
   wait(0.1, seconds);
-  pid.move(600.0, 10.0, 300.0, -90.0, 80.0);
+  pid.move(750.0, 10.0, 300.0, -90.0, 80.0);
   wait(0.1, seconds);
+  pid.move(150.0, 10.0, 75.0, -90.0, -80.0);
+  wait(0.2, seconds);
   pid.turn(0.0);
-  //wait(0.25, seconds);
-  pid.move(50.0, -1.0, 50.0, 0.0, -80.0);
-  //wait(0.2, seconds);
-  pid.move(700.0, 10.0, 100.0, 0.0, 80.0);
+  wait(0.2, seconds);
+  pid.move(300.0, -1.0, 150.0, 0.0, -80.0);
+  wait(0.1, seconds);
+  pid.move(600.0, 10.0, 100.0, 0.0, 80.0);
   //wait(0.1, seconds);
-  pid.turn(35.0);
-  wait(0.1,seconds);
-  pid.move(230.0, 5.0, 50.0, 35.0, 40.0);
-  //wait(0.2, seconds); 
-  pid.move(230.0, 5.0, 50.0, 35.0, -40.0);
-  wait(0.1, seconds);
-  pid.turn(0.0);
+  // pid.turn(35.0);
+  // wait(0.1,seconds);
+  // pid.move(230.0, 5.0, 50.0, 35.0, 40.0);
+  // //wait(0.2, seconds); 
+  // pid.move(230.0, 5.0, 50.0, 35.0, -40.0);
+  // wait(0.1, seconds);
+  // pid.turn(0.0);
   //wait(0.1, seconds);
   pid.setupMove(1.9, Kim, Kdm);
   pid.move(1000.0, -1.0, 120.0, -90.0, 80.0);
