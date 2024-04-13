@@ -26,17 +26,17 @@ brain Brain;
 
 // Robot configuration code.
 inertial BrainInertial = inertial();
-motor LM = motor(PORT1, false);
-motor RM = motor(PORT7, true);
-motor IntakeMotorA = motor(PORT3, false);
-motor IntakeMotorB = motor(PORT9, true);
+motor LM = motor(PORT12, true);
+motor RM = motor(PORT6, false);
+motor IntakeMotorA = motor(PORT1, false);
+motor IntakeMotorB = motor(PORT7, true);
 motor_group Intake = motor_group(IntakeMotorA, IntakeMotorB);
 
 /*vex-vision-config:begin*/
-vision Vision4 = vision(PORT4, 50);
+vision Vision4 = vision (PORT4, 50);
 /*vex-vision-config:end*/
-motor ElevatorMotorA = motor(PORT6, true);
-motor ElevatorMotorB = motor(PORT12, false);
+motor ElevatorMotorA = motor(PORT8, true);
+motor ElevatorMotorB = motor(PORT2, false);
 motor_group Elevator = motor_group(ElevatorMotorA, ElevatorMotorB);
 
 controller Controller = controller();
@@ -54,23 +54,6 @@ using namespace vex;
 double previousTime = 0, currentTime = 0;
 float minSpeed = 0.0;
 
-const char *printToBrain_numberFormat(int precision)
-{
-  // look at the current precision setting to find the format string
-  switch (precision)
-  {
-  case 0:
-    return "%.0f"; // 0 decimal places (1)
-  case 1:
-    return "%.1f"; // 1 decimal place  (0.1)
-  case 2:
-    return "%.2f"; // 2 decimal places (0.01)
-  case 3:
-    return "%.3f"; // 3 decimal places (0.001)
-  default:
-    return "%f"; // use the print system default for everthing else
-  }
-}
 
 bool runIntake = false;
 void RunIntake(float DELAY)
@@ -143,13 +126,13 @@ public:
         leftVelocity = output, rightVelocity = -output;
       else
         leftVelocity = -output, rightVelocity = output;
-      if (rightVelocity < minSpeed && rightVelocity > 0.0)
+      if (rightVelocity < minSpeed && rightVelocity > 0.5)
         rightVelocity = minSpeed; // Make sure the robot is still moving very slowly
-      if (leftVelocity < minSpeed && leftVelocity > 0.0)
+      if (leftVelocity < minSpeed && leftVelocity > 0.5)
         leftVelocity = minSpeed;
-      if (rightVelocity > -minSpeed && rightVelocity < 0.0)
+      if (rightVelocity > -minSpeed && rightVelocity < -0.5)
         rightVelocity = -minSpeed;
-      if (leftVelocity > -minSpeed && leftVelocity < 0.0)
+      if (leftVelocity > -minSpeed && leftVelocity < -0.5)
         leftVelocity = -minSpeed;
       LM.setVelocity(leftVelocity, percent);
       RM.setVelocity(rightVelocity, percent);
@@ -183,26 +166,26 @@ public:
       float error = heading - currentAngle;
       float output = (Kpm * error + Kdm * (error - previousError) / (currentTime - previousTime)) * 0.5;
       float output_MUL = 1.0;
-      if (originalDistance > distance > originalDistance - accelDistance)
+      if (originalDistance >= distance && distance >= (originalDistance - accelDistance))
       {
         output_MUL = (originalDistance - distance) / accelDistance;
-        if (output_MUL > 0.7)
-          output_MUL = 0.7;
+        if (output_MUL < 0.3)
+          output_MUL = 0.3;
       }
-      else if (breakeDistance > distance > 0.0)
+      else if (breakeDistance >= distance && distance >= 0.0)
         output_MUL = distance / breakeDistance;
       float rightVelocity = speed * output_MUL - output, leftVelocity = speed * output_MUL + output;
-      if (rightVelocity < minSpeed && rightVelocity > 0.0)
-        rightVelocity = minSpeed; // Make sure the robot is still moving very slowly
-      if (leftVelocity < minSpeed && leftVelocity > 0.0)
-        leftVelocity = minSpeed;
-      if (rightVelocity > -minSpeed && rightVelocity < 0.0)
-        rightVelocity = -minSpeed;
-      if (leftVelocity > -minSpeed && leftVelocity < 0.0)
-        leftVelocity = -minSpeed;
+      if (rightVelocity < 45.0 && rightVelocity >= 0.0)
+        rightVelocity = 45.0; // Make sure the robot is still moving very slowly
+      if (leftVelocity < 45.0 && leftVelocity >= 0.0)
+        leftVelocity = 45.0;
+      if (rightVelocity > -45.0 && rightVelocity < 0.0)
+        rightVelocity = -45.0;
+      if (leftVelocity > -45.0 && leftVelocity < 0.0)
+        leftVelocity = -45.0;
       RM.setVelocity(rightVelocity, percent);
       LM.setVelocity(leftVelocity, percent);
-      if ((abs(LM.velocity(percent)) == 0.0 && abs(RM.velocity(percent)) == 0.0) || distance <= 20.0)
+      if ((abs(LM.velocity(percent)) == 0.0 && abs(RM.velocity(percent)) == 0.0))
         count += 1;
       else
         count = 0;
@@ -229,23 +212,24 @@ void graphing()
   }
 }
 
-float Kpr = 1.05, Kdr = 0.0, Kir = 40.1;
-float Kpm = 2.8, Kdm = 0.12, Kim = 0.0;
-float targetAngle = 0.0;
-float accelDistance = 200.0;
-float brakeDistance = 200.0;
+float Kpr = 0.8, Kdr = 0.1, Kir = 0.0; //Default PID rotation value
+float Kpm = 1.8, Kdm = 0.12, Kim = 0.0; //Defailt PID movement value
+float defaultAccelDistance = 500.0;
+float defaultBrakeDistance = 200.0;
 PID pid;
 
 void setup()
 {
-  minSpeed = 13.0;
+  minSpeed = 7.0;
   Intake.setVelocity(100, percent);
   Elevator.setStopping(hold);
   Elevator.setPosition(0, degrees);
-  Elevator.spinToPosition(10, degrees);
   LM.setStopping(brake);
   RM.setStopping(brake);
-  // Begin project code
+  LM.setMaxTorque(100, percent);
+  RM.setMaxTorque(100, percent);
+  Intake.setMaxTorque(100, percent);
+  Elevator.setMaxTorque(100, percent);
   thread updatetime = thread(UpdateTimer);
   BrainInertial.calibrate();
   wait(2.5, seconds);
@@ -258,28 +242,27 @@ void setup()
 
 void clearSupplyZone()
 {
-  accelDistance = 500.0;
-  brakeDistance = 150.0;
-  thread intake_t = thread([]
-                           { RunIntake(0); });
-  pid.move(1500.0, 500.0, brakeDistance, 0.0, 60.0);
+  defaultAccelDistance = 500.0;
+  defaultBrakeDistance = 200.0;
+  thread intake_t = thread([]{ RunIntake(0); });
+  pid.move(1500.0, defaultAccelDistance, defaultBrakeDistance, 0.0, 60.0);
   wait(0.1, seconds);
   runIntake = false;
   pid.turn(110.0);
   Intake.spin(reverse);
   // pid.setupRotate(4.0, Kdr, Kir);
-  brakeDistance = 0.0;
+  defaultBrakeDistance = 0.0;
   for (int i = 0; i < 4; i++)
   {
-    pid.move(1000.0, accelDistance, brakeDistance, 90.0, 80.0);
+    pid.move(1000.0, defaultAccelDistance, defaultBrakeDistance, 90.0, 80.0);
     if (i == 0)
       intake_t = thread([]
                         { RunIntake(1.0); });
-    pid.move(300.0, accelDistance, brakeDistance, 90.0, -60.0);
-    pid.move(300.0, accelDistance, brakeDistance, 90.0, 80.0);
-    pid.move(300.0, accelDistance, brakeDistance, 90.0, -60.0);
-    pid.move(300.0, accelDistance, brakeDistance, 90.0, 80.0);
-    pid.move(200.0, accelDistance, brakeDistance, 90.0, -60.0);
+    pid.move(300.0, defaultAccelDistance, defaultBrakeDistance, 90.0, -60.0);
+    pid.move(300.0, defaultAccelDistance, defaultBrakeDistance, 90.0, 80.0);
+    pid.move(300.0, defaultAccelDistance, defaultBrakeDistance, 90.0, -60.0);
+    pid.move(300.0, defaultAccelDistance, defaultBrakeDistance, 90.0, 80.0);
+    pid.move(200.0, defaultAccelDistance, defaultBrakeDistance, 90.0, -60.0);
     // pid.turn(60.0);
     LM.spin(forward);
     RM.spin(forward);
@@ -292,18 +275,42 @@ void clearSupplyZone()
   }
   runIntake = false;
 }
-void run()
-{
-  clearSupplyZone();
-}
-
-void runAutonomous()
-{
-  setup();
-  run();
-}
 
 int main()
 {
-  runAutonomous();
+  setup();
+  //Autonomous path
+  pid.move(600.0, 10.0, 300.0, 0.0, 80.0);
+  wait(0.1, seconds);
+  pid.turn(-90.0);
+  wait(0.1, seconds);
+  pid.move(600.0, 10.0, 300.0, -90.0, 80.0);
+  wait(0.1, seconds);
+  pid.turn(0.0);
+  //wait(0.25, seconds);
+  pid.move(50.0, -1.0, 50.0, 0.0, -80.0);
+  //wait(0.2, seconds);
+  pid.move(700.0, 10.0, 100.0, 0.0, 80.0);
+  //wait(0.1, seconds);
+  pid.turn(35.0);
+  wait(0.1,seconds);
+  pid.move(230.0, 5.0, 50.0, 35.0, 40.0);
+  //wait(0.2, seconds); 
+  pid.move(230.0, 5.0, 50.0, 35.0, -40.0);
+  wait(0.1, seconds);
+  pid.turn(0.0);
+  //wait(0.1, seconds);
+  pid.setupMove(1.9, Kim, Kdm);
+  pid.move(1000.0, -1.0, 120.0, -90.0, 80.0);
+  pid.move(300.0, 10.0, 100.0, -90.0, -60.0);
+  //wait(0.1, seconds);
+  pid.turn(-135.0);
+  //wait(0.1, seconds);
+  pid.setupMove(2.0, Kim, Kdm);
+  pid.move(1200.0, -1.0, 400.0, -180.0, 80.0);
+  wait(0.1, seconds);
+  pid.turn(-60.0);
+  //wait(0.1, seconds);
+  pid.move(450.0, -1.0, 200.0, 10.0, 75.0);
+  pid.move(3000.0, -1.0, 400.0, 0.0, -100.0);
 }
