@@ -52,7 +52,7 @@ bool RemoteControlCodeEnabled = true;
 // Allows for easier use of the VEX Library
 using namespace vex;
 double previousTime = 0, currentTime = 0;
-float minRotSpeed = 0.0, minMoveSpeed;
+float minRotSpeed = 0.0, minMoveSpeed = 0.0;
 
 
 bool runIntake = false;
@@ -108,43 +108,43 @@ public:
     Kdm = d;
   }
 
-  void turn(float heading)
+void turn(float heading)
   {
     float previousError = heading - BrainInertial.rotation(degrees);
     float integral = 0.0;
-    int count = 0, maxCount = 10;
+    int count = 0, maxCount = 5;
     RM.spin(forward);
     LM.spin(forward);
     while (count < maxCount)
     {
       float currentAngle = BrainInertial.rotation(degrees);
       float error = heading - currentAngle;
-      integral += Kir * (error - previousError) * (currentTime - previousTime);
+      integral += Kir * (error) * (currentTime - previousTime);
       float output = abs(Kpr * error + Kdr * (error - previousError) / (currentTime - previousTime) + integral) * 0.5;
       float leftVelocity, rightVelocity;
       if (currentAngle < heading)
         leftVelocity = output, rightVelocity = -output;
       else
         leftVelocity = -output, rightVelocity = output;
-      if (rightVelocity < minRotSpeed && rightVelocity > 0.5)
+      if (rightVelocity < minRotSpeed && rightVelocity > 0.0)
         rightVelocity = minRotSpeed; // Make sure the robot is still moving very slowly
-      if (leftVelocity < minRotSpeed && leftVelocity > 0.5)
+      if (leftVelocity < minRotSpeed && leftVelocity > 0.0)
         leftVelocity = minRotSpeed;
-      if (rightVelocity > -minRotSpeed && rightVelocity < -0.5)
+      if (rightVelocity > -minRotSpeed && rightVelocity < 0.0)
         rightVelocity = -minRotSpeed;
-      if (leftVelocity > -minRotSpeed && leftVelocity < -0.5)
+      if (leftVelocity > -minRotSpeed && leftVelocity < 0.0)
         leftVelocity = -minRotSpeed;
       LM.setVelocity(leftVelocity, percent);
       RM.setVelocity(rightVelocity, percent);
-      if (abs(currentAngle - heading) <= 2.6)
+      if (abs(currentAngle - heading) <= 2.5)
         count += 1;
       else
         count = 0;
       wait(10, msec);
       previousError = error;
     }
-    RM.stop();
-    LM.stop();
+    RM.setVelocity(0, percent);
+    LM.setVelocity(0, percent);
   }
 
   void move(float distance, float accelDistance, float breakeDistance, float heading, float speed)
@@ -154,7 +154,7 @@ public:
     float originalDistance = distance;
     LM.setPosition(0, degrees);
     RM.setPosition(0, degrees);
-    int count = 0, maxCount = 15;
+    int count = 0, maxCount = 5;
     RM.spin(forward), LM.spin(forward);
     if (speed < 0)
       RM.spin(reverse), LM.spin(reverse);
@@ -169,8 +169,8 @@ public:
       if (originalDistance >= distance && distance >= (originalDistance - accelDistance))
       {
         output_MUL = (originalDistance - distance) / accelDistance;
-        if (output_MUL < 0.3)
-          output_MUL = 0.3;
+        if (output_MUL < 0.6)
+          output_MUL = 0.6;
       }
       else if (breakeDistance >= distance && distance >= 0.0)
         output_MUL = distance / breakeDistance;
@@ -185,7 +185,7 @@ public:
         leftVelocity = -minMoveSpeed;
       RM.setVelocity(rightVelocity, percent);
       LM.setVelocity(leftVelocity, percent);
-      if ((abs(LM.velocity(percent)) == 0.0 && abs(RM.velocity(percent)) == 0.0))
+      if (( abs(LM.velocity(percent)) == 0.0 && abs(RM.velocity(percent)) == 0.0 && distance < (originalDistance-50.0) ) || distance <= 20.0)
         count += 1;
       else
         count = 0;
@@ -194,13 +194,13 @@ public:
       float moveD = abs((RM.position(turns) - PREV_TICK_R + LM.position(turns) - PREV_TICK_L) * 199.49) * cos((currentAngle - heading) / 180.0 * 3.1415926);
       distance -= moveD;
     }
-    RM.stop();
-    LM.stop();
+    RM.setVelocity(0, percent);
+    LM.setVelocity(0, percent);
   }
 };
 
-float Kpr = 0.8, Kdr = 0.1, Kir = 0.0; //Default PID rotation value
-float Kpm = 1.8, Kdm = 0.12, Kim = 0.0; //Defailt PID movement value
+float Kpr = 0.8, Kdr = 0.026, Kir = 0.0; //Default PID rotation value
+float Kpm = 1.4, Kdm = 0.0, Kim = 0.0; //Defailt PID movement value
 float defaultAccelDistance = 500.0;
 float defaultBrakeDistance = 200.0;
 PID pid;
@@ -243,8 +243,8 @@ void clearSupplyZone()
 
 void setup()
 {
-  minRotSpeed = 7.2;
-  minMoveSpeed = 45.0;
+  minRotSpeed = 6.0;
+  minMoveSpeed = 35.0;
   Intake.setVelocity(100, percent);
   Elevator.setStopping(hold);
   Elevator.setPosition(0, degrees);
@@ -263,43 +263,60 @@ void setup()
   pid.setupMove(Kpm, Kim, Kdm);
 }
 
+void time(){
+  while (true){
+    Brain.Screen.print("%.3f", Brain.Timer.value());
+    wait(10, msec);
+    Brain.Screen.clearScreen();
+    Brain.Screen.setCursor(1,1);
+  }
+}
+
 int main()
 {
   setup();
   //Autonomous path
-  pid.move(1200.0, 10.0, 300.0, 0.0, 80.0);
+  thread time_ = thread(time);
+  pid.move(900.0, 10.0, 300.0, 0.0, 100.0);
   wait(0.1, seconds);
+  //pid.move(975.0, 10.0, 300.0, 0.0, 80.0);
   pid.turn(-90.0);
+  pid.setupMove(3.0, Kim, Kdm);
   wait(0.1, seconds);
-  pid.move(750.0, 10.0, 300.0, -90.0, 80.0);
-  wait(0.1, seconds);
-  pid.move(150.0, 10.0, 75.0, -90.0, -80.0);
+  pid.move(1000.0, 10.0, 300.0, -90.0, 100.0);
+  pid.setupMove(1.4, Kim, Kdm);
   wait(0.2, seconds);
+  pid.move(375.0, 10.0, 250.0, -90.0, -100.0);
+  wait(0.1, seconds);
   pid.turn(0.0);
-  wait(0.2, seconds);
-  pid.move(300.0, -1.0, 150.0, 0.0, -80.0);
   wait(0.1, seconds);
-  pid.move(600.0, 10.0, 100.0, 0.0, 80.0);
+  pid.move(300.0, -1.0, 200.0, 0.0, -100.0);
   //wait(0.1, seconds);
-  // pid.turn(35.0);
-  // wait(0.1,seconds);
-  // pid.move(230.0, 5.0, 50.0, 35.0, 40.0);
-  // //wait(0.2, seconds); 
-  // pid.move(230.0, 5.0, 50.0, 35.0, -40.0);
-  // wait(0.1, seconds);
-  // pid.turn(0.0);
+  pid.move(600.0, 10.0, 300.0, 0.0, 100.0);
+  wait(0.4, seconds);
+  pid.setupMove(1.4, Kim, Kdm);
+  pid.move(300.0, -1.0, 120.0, -90.0, 70.0);
+  //pid.move(300.0, 10.0, 100.0, -90.0, -60.0);
+  minRotSpeed = 17.0;
+  pid.turn(-110.0);
   //wait(0.1, seconds);
-  pid.setupMove(1.9, Kim, Kdm);
-  pid.move(1000.0, -1.0, 120.0, -90.0, 80.0);
-  pid.move(300.0, 10.0, 100.0, -90.0, -60.0);
-  //wait(0.1, seconds);
-  pid.turn(-135.0);
-  //wait(0.1, seconds);
-  pid.setupMove(2.0, Kim, Kdm);
-  pid.move(1200.0, -1.0, 400.0, -180.0, 80.0);
+  pid.setupMove(1.85, Kim, Kdm);
+  minRotSpeed = 6.0;
+  pid.move(1200.0, -1.0, 100.0, -180.0, 80.0);
   wait(0.1, seconds);
   pid.turn(-60.0);
-  //wait(0.1, seconds);
+  wait(0.1, seconds);
+  pid.setupMove(1.4, Kim, Kdm);
   pid.move(450.0, -1.0, 200.0, 10.0, 75.0);
-  pid.move(3000.0, -1.0, 400.0, 0.0, -100.0);
+  pid.move(3000.0, -1.0, 400.0, 3.0, -80.0);
+  
+  pid.move(800.0, -1.0, 200.0, 10.0, 100.0);
+  minRotSpeed = 10.0;
+  pid.turn(43.0);
+  wait(0.2, seconds);
+  pid.setupMove(1.4, Kim, Kdm);
+  pid.move(900.0, -1.0, 100.0, 43.0, 100.0);
+  pid.turn(108.0);
+  LM.setStopping(coast); RM.setStopping(coast);
+  pid.move(1000.0, -1.0, 0.0, 90.0, -70.0);
 }
