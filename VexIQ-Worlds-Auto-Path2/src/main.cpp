@@ -26,18 +26,18 @@ brain Brain;
 
 // Robot configuration code.
 inertial BrainInertial = inertial();
-motor LM = motor(PORT12, true);
-motor RM = motor(PORT6, false);
+motor LM = motor(PORT4, true);
+motor RM = motor(PORT11, false);
 motor IntakeMotorA = motor(PORT1, false);
-motor IntakeMotorB = motor(PORT7, true);
+motor IntakeMotorB = motor(PORT8, true);
 motor_group Intake = motor_group(IntakeMotorA, IntakeMotorB);
 
-/*vex-vision-config:begin*/
-vision Vision4 = vision (PORT4, 50);
 /*vex-vision-config:end*/
-motor ElevatorMotorA = motor(PORT8, true);
-motor ElevatorMotorB = motor(PORT2, false);
+motor ElevatorMotorA = motor(PORT9, true);
+motor ElevatorMotorB = motor(PORT3, false);
 motor_group Elevator = motor_group(ElevatorMotorA, ElevatorMotorB);
+pneumatic Pneumatic4 = pneumatic(PORT4);
+pneumatic Pneumatic5 = pneumatic(PORT5);
 
 controller Controller = controller();
 
@@ -56,28 +56,18 @@ float minRotSpeed = 0.0, minMoveSpeed = 0.0;
 
 
 bool runIntake = false;
-void RunIntake(float DELAY)
+void RunIntake()
 {
-  int count = 0;
-  runIntake = true;
-  wait(DELAY, seconds);
-  while (runIntake)
-  {
-    if (count >= 50)
-    {
-      Intake.spin(reverse);
-      wait(0.5, seconds);
-      Intake.spin(forward);
-      count = 0;
-    }
+  if(!runIntake){
+    runIntake = true;
     Intake.spin(forward);
-    if (Intake.velocity(percent) == 0.0)
-      count += 1;
-    else
-      count = 0;
-    wait(5, msec);
+    Elevator.spin(forward);
   }
-  Intake.stop();
+  else{
+    runIntake = false;
+    Intake.stop();
+    Elevator.stop();
+  }
 }
 
 void UpdateTimer()
@@ -87,6 +77,20 @@ void UpdateTimer()
     currentTime = Brain.Timer.value();
     wait(10, msec);
     previousTime = currentTime;
+  }
+}
+
+bool releasePurple = false;
+void PurpleStorage(){
+  if(!releasePurple){
+    releasePurple = true;
+    Pneumatic4.extend(cylinder2);
+    Pneumatic5.retract(cylinder2);
+  }
+  else{
+    releasePurple = false;
+    Pneumatic4.retract(cylinder2);
+    Pneumatic5.extend(cylinder2);
   }
 }
 
@@ -199,40 +203,30 @@ void turn(float heading)
   }
 };
 
-float Kpr = 0.8, Kdr = 0.026, Kir = 0.0; //Default PID rotation value
-float Kpm = 1.4, Kdm = 0.0, Kim = 0.0; //Defailt PID movement value
+float Kpr = 1.05, Kdr = 0.03, Kir = 0.0; //Default PID rotation value
+float Kpm = 20.0, Kdm = 0.0, Kim = 0.0; //Defailt PID movement value
 float defaultAccelDistance = 500.0;
 float defaultBrakeDistance = 200.0;
 PID pid;
 
 void clearSupplyZone()
 {
-  pid.setupMove(1.6, Kim, Kdm);
-  pid.move(3000.0, -1.0, 200.0, 90.0, 100.0);
-  pid.move(300.0, -1.0, 100.0, 90.0, -100.0);
-  pid.move(3000.0, -1.0, 200.0, 90.0, 100.0);
-  pid.move(300.0, -1.0, 100.0, 90.0, -100.0);
-  minRotSpeed = 8.0;
-  pid.turn(110.0);
-  
-  pid.move(1000.0, -1.0, -1.0, 90.0, 100.0);
-  pid.move(300.0, -1.0, 100.0, 90.0, -100.0);
-  pid.move(1000.0, -1.0, -1.0, 90.0, 100.0);
-  minRotSpeed = 8.0;
-
-  pid.move(300.0, -1.0, 100.0, 90.0, -100.0);
-  pid.turn(110.0);
-  pid.move(1000.0, -1.0, -1.0, 90.0, 100.0);
-  pid.move(300.0, -1.0, 100.0, 90.0, -100.0);
-  pid.move(1000.0, -1.0, -1.0, 90.0, 100.0);
-
-  pid.move(550.0, -1.0, 100.0, 90.0, -100.0);
+  pid.setupMove(5.0, Kim, Kdm);
+  pid.move(400.0, -1.0, 200.0, 90.0, 40.0);
+  wait(0.5, seconds);
+  pid.move(200.0, -1.0, 200.0, 90.0, 40.0);
+  wait(0.5, seconds);
+  pid.move(150.0, -1.0, 50.0, 90.0, -80.0);
 }
 
 void setup()
 {
-  minRotSpeed = 6.0;
-  minMoveSpeed = 35.0;
+  minRotSpeed = 9.3;
+  minMoveSpeed = 50.0;
+  Pneumatic4.retract(cylinder1);
+  Pneumatic5.retract(cylinder1);
+  Pneumatic4.retract(cylinder2);
+  Pneumatic5.extend(cylinder2);
   Intake.setVelocity(100, percent);
   Elevator.setStopping(hold);
   Elevator.setPosition(0, degrees);
@@ -265,18 +259,32 @@ int main()
   setup();
   //Autonomous path
   thread time_ = thread(time);
-  pid.move(1350.0, 10.0, 300.0, 0.0, 100.0);
-  pid.turn(45.0);
+  RunIntake();
+  pid.move(1250.0, -10.0, 200.0, 0.0, 100.0);
+  pid.turn(90.0);
   //Supply zone phase
   clearSupplyZone();
   //Goal 1
-  pid.turn(145.0);
-  pid.move(600.0, 10.0, -10.0, 145.0, 100.0);
-  pid.setupMove(3.0, Kim, Kdm);
-  pid.move(300.0, -1.0, 200.0, 200.0, 100.0);
-  pid.move(400.0, -1.0, 200.0, 290.0, 100.0);
-  pid.move(1000.0, -1.0, 200.0, 290.0, -100.0);
+  // pid.turn(135.0);
+  // pid.move(500.0, 10.0, -10.0, 135.0, 100.0);
+  // pid.setupMove(2.8, Kim, Kdm);
+  // pid.move(400.0, -1.0, -200.0, 210.0, 100.0);
+  // pid.setupMove(2.6, Kim, Kdm);
+  // pid.move(300.0, -1.0, 200.0, 290.0, 100.0);
+  // pid.setupMove(1.4, Kim, Kdm);
+  // pid.move(1000.0, -1.0, 200.0, 280.0, -100.0);
 
-  //Goal 2:
-  pid.move(1603.317, -1.0, 300.0, 284.0, 100.0);
+  // //Goal 2:
+  // pid.setupMove(3.0, Kim, Kdm);
+  // pid.move(1603.317, -1.0, -300.0, 300.0, 100.0);
+  // pid.setupMove(1.2, Kim, Kdm);
+  // pid.move(600.0, -1.0, 200.0, 370.0, 100.0);
+  // pid.move(3000.0, -1.0, 400.0, 10.0, -80.0);
+
+  // //Goal 3:
+  // pid.setupMove(3.0, Kim, Kdm);
+  // pid.move(1000.0, -1.0, -200.0, 30.0, 100.0);
+  // pid.setupMove(1.8, Kim, Kdm);
+  // pid.move(300.0, -1.0, -100.0, 70.0, 100.0);
+  // pid.move(1200.0, -1.0, 100.0, 90.0, 100.0);
 }
