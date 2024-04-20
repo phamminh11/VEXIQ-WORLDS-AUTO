@@ -212,11 +212,55 @@ PID pid;
 void clearSupplyZone()
 {
   pid.setupMove(5.0, Kim, Kdm);
-  pid.move(400.0, -1.0, 200.0, 90.0, 40.0);
+  pid.move(2000.0, -1.0, 200.0, 70.0, 100.0);
+  LM.spin(forward); RM.spin(forward);
+  LM.setVelocity(-100, percent); RM.setVelocity(100, percent);
   wait(0.5, seconds);
-  pid.move(200.0, -1.0, 200.0, 90.0, 40.0);
+  LM.setVelocity(100, percent); RM.setVelocity(-100, percent);
   wait(0.5, seconds);
-  pid.move(150.0, -1.0, 50.0, 90.0, -80.0);
+  LM.setVelocity(-100, percent); RM.setVelocity(100, percent);
+  wait(0.5, seconds);
+  LM.setVelocity(100, percent); RM.setVelocity(-100, percent);
+  wait(0.5, seconds);
+  LM.stop(); RM.stop();
+
+  pid.move(100.0, -1.0, 00.0, 90.0, -100.0);
+  pid.move(2000.0, -1.0, 200.0, 90.0, 100.0);
+  LM.spin(forward); RM.spin(forward);
+  LM.setVelocity(-100, percent); RM.setVelocity(100, percent);
+  wait(0.5, seconds);
+  LM.setVelocity(100, percent); RM.setVelocity(-100, percent);
+  wait(0.5, seconds);
+  LM.setVelocity(-100, percent); RM.setVelocity(100, percent);
+  wait(1, seconds);
+  LM.stop(); RM.stop();
+
+  pid.move(100.0, -1.0, 0.0, 90.0, -100.0);
+  pid.move(2000.0, -1.0, 200.0, 90.0, 100.0);  
+  LM.spin(forward); RM.spin(forward);
+  LM.setVelocity(-100, percent); RM.setVelocity(100, percent);
+  wait(1, seconds);
+  LM.stop(); RM.stop();
+  pid.move(200.0, -1.0, 200.0, 90.0, -100.0);
+  
+  minRotSpeed = 80.0;
+  pid.turn(120.0);
+  
+  pid.move(2000.0, -1.0, 200.0, 90.0, 100.0);
+  LM.spin(forward); RM.spin(forward);
+  LM.setVelocity(-100, percent); RM.setVelocity(100, percent);
+  wait(0.5, seconds);
+  LM.setVelocity(100, percent); RM.setVelocity(-100, percent);
+  wait(0.5, seconds);
+  LM.setVelocity(-100, percent); RM.setVelocity(100, percent);
+  wait(0.5, seconds);
+  LM.setVelocity(100, percent); RM.setVelocity(-100, percent);
+  wait(0.5, seconds);
+  LM.stop(); RM.stop();
+
+  pid.move(100.0, -1.0, 0.0, 90.0, -100.0);
+  pid.move(2000.0, -1.0, 200.0, 90.0, 100.0);  
+  pid.move(500.0, -1.0, 200.0, 90.0, -100.0);
 }
 
 void setup()
@@ -228,6 +272,7 @@ void setup()
   Pneumatic4.retract(cylinder2);
   Pneumatic5.extend(cylinder2);
   Intake.setVelocity(100, percent);
+  Elevator.setVelocity(100, percent);
   Elevator.setStopping(hold);
   Elevator.setPosition(0, degrees);
   LM.setStopping(brake);
@@ -260,26 +305,37 @@ int main()
   //Autonomous path
   thread time_ = thread(time);
   RunIntake();
-  pid.move(1250.0, -10.0, 200.0, 0.0, 100.0);
+  pid.move(3000.0, -10.0, 200.0, 0.0, 100.0);
+  pid.move(100.0, -10.0, 50.0, 0.0, -100.0);
   pid.turn(90.0);
   //Supply zone phase
-  clearSupplyZone();
+  clearSupplyZone(); //This part good enough
   //Goal 1
-  // pid.turn(135.0);
-  // pid.move(500.0, 10.0, -10.0, 135.0, 100.0);
-  // pid.setupMove(2.8, Kim, Kdm);
-  // pid.move(400.0, -1.0, -200.0, 210.0, 100.0);
-  // pid.setupMove(2.6, Kim, Kdm);
-  // pid.move(300.0, -1.0, 200.0, 290.0, 100.0);
-  // pid.setupMove(1.4, Kim, Kdm);
-  // pid.move(1000.0, -1.0, 200.0, 280.0, -100.0);
-
-  // //Goal 2:
-  // pid.setupMove(3.0, Kim, Kdm);
-  // pid.move(1603.317, -1.0, -300.0, 300.0, 100.0);
-  // pid.setupMove(1.2, Kim, Kdm);
-  // pid.move(600.0, -1.0, 200.0, 370.0, 100.0);
-  // pid.move(3000.0, -1.0, 400.0, 10.0, -80.0);
+  minRotSpeed = 30.0;
+  pid.turn(-40.0);
+  pid.setupMove(4.0, Kim, Kdm);
+  pid.move(1600.0, -1.0, 200.0, -70.0, 100.0);
+  pid.setupMove(5.0, Kim, Kdm);
+  pid.move(300.0, -1.0, 10.0, -75.0, -100.0);
+  minRotSpeed = 60.0;
+  pid.turn(-120.0);
+  pid.setupMove(2.6, Kim, Kdm);
+  pid.move(750.0, -1.0, 100.0, -160.0, 100.0);
+  minRotSpeed = 60.0;
+  pid.turn(-200.0);
+  pid.move(1000.0, -1.0, -1.0, -190.0, -100.0);
+  
+  //Goal 2:
+  pid.setupMove(4.0, Kim, Kdm);
+  pid.move(300.0, -1.0, -1.0, -210.0, 100.0);
+  pid.move(600.0, -1.0, 300.0, -225.0, 100.0);
+  pid.setupMove(2.0, Kim, Kdm);
+  pid.move(400.0, -1.0, 300.0, -240.0, 100.0);
+  minRotSpeed = 10.0;
+  pid.setupRotate(1.7, 0.0, 0.04);
+  pid.turn(-280.0);
+  pid.setupMove(1.2, Kim, Kdm);
+  pid.move(400.0, -1.0, 300.0, -280.0, -100.0);
 
   // //Goal 3:
   // pid.setupMove(3.0, Kim, Kdm);
