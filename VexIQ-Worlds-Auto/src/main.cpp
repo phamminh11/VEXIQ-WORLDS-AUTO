@@ -33,7 +33,7 @@ motor IntakeMotorB = motor(PORT7, true);
 motor_group Intake = motor_group(IntakeMotorA, IntakeMotorB);
 
 /*vex-vision-config:begin*/
-vision Vision4 = vision (PORT4, 50);
+vision Vision4 = vision(PORT4, 50);
 /*vex-vision-config:end*/
 motor ElevatorMotorA = motor(PORT8, true);
 motor ElevatorMotorB = motor(PORT2, false);
@@ -53,7 +53,6 @@ bool RemoteControlCodeEnabled = true;
 using namespace vex;
 double previousTime = 0, currentTime = 0;
 float minRotSpeed = 0.0, minMoveSpeed = 0.0;
-
 
 bool runIntake = false;
 void RunIntake(float DELAY)
@@ -108,7 +107,7 @@ public:
     Kdm = d;
   }
 
-void turn(float heading)
+  void turn(float heading)
   {
     float previousError = heading - BrainInertial.rotation(degrees);
     float integral = 0.0;
@@ -185,7 +184,7 @@ void turn(float heading)
         leftVelocity = -minMoveSpeed;
       RM.setVelocity(rightVelocity, percent);
       LM.setVelocity(leftVelocity, percent);
-      if (( abs(LM.velocity(percent)) == 0.0 && abs(RM.velocity(percent)) == 0.0 && distance < (originalDistance-50.0) ) || distance <= 20.0)
+      if ((abs(LM.velocity(percent)) == 0.0 && abs(RM.velocity(percent)) == 0.0 && distance < (originalDistance - 50.0)) || distance <= 20.0)
         count += 1;
       else
         count = 0;
@@ -199,8 +198,8 @@ void turn(float heading)
   }
 };
 
-float Kpr = 0.8, Kdr = 0.026, Kir = 0.0; //Default PID rotation value
-float Kpm = 1.4, Kdm = 0.0, Kim = 0.0; //Defailt PID movement value
+float Kpr = 0.8, Kdr = 0.026, Kir = 0.0; // Default PID rotation value
+float Kpm = 1.4, Kdm = 0.0, Kim = 0.0;   // Defailt PID movement value
 float defaultAccelDistance = 500.0;
 float defaultBrakeDistance = 200.0;
 PID pid;
@@ -214,7 +213,7 @@ void clearSupplyZone()
   pid.move(300.0, -1.0, 100.0, 90.0, -100.0);
   minRotSpeed = 8.0;
   pid.turn(110.0);
-  
+
   pid.move(1000.0, -1.0, -1.0, 90.0, 100.0);
   pid.move(300.0, -1.0, 100.0, 90.0, -100.0);
   pid.move(1000.0, -1.0, -1.0, 90.0, 100.0);
@@ -251,19 +250,21 @@ void setup()
   pid.setupMove(Kpm, Kim, Kdm);
 }
 
-void time(){
-  while (true){
+void time()
+{
+  while (true)
+  {
     Brain.Screen.print("%.3f", Brain.Timer.value());
     wait(10, msec);
     Brain.Screen.clearScreen();
-    Brain.Screen.setCursor(1,1);
+    Brain.Screen.setCursor(1, 1);
   }
 }
 
 int main()
 {
   setup();
-  //Autonomous path
+  // Autonomous path
   thread time_ = thread(time);
   pid.move(900.0, 10.0, 300.0, 0.0, 100.0);
   wait(0.1, seconds);
@@ -278,15 +279,15 @@ int main()
   pid.turn(0.0);
   wait(0.2, seconds);
   pid.move(300.0, -1.0, 200.0, 0.0, -100.0);
-  //wait(0.1, seconds);
+  // wait(0.1, seconds);
   pid.move(600.0, 10.0, 300.0, 0.0, 100.0);
   wait(0.3, seconds);
   pid.setupMove(1.4, Kim, Kdm);
   pid.move(300.0, -1.0, 120.0, -90.0, 70.0);
-  //pid.move(300.0, 10.0, 100.0, -90.0, -60.0);
+  // pid.move(300.0, 10.0, 100.0, -90.0, -60.0);
   minRotSpeed = 18.0;
   pid.turn(-125.0);
-  //wait(0.1, seconds);
+  // wait(0.1, seconds);
   pid.setupMove(1.85, Kim, Kdm);
   minRotSpeed = 6.0;
   pid.move(1200.0, -1.0, 100.0, -180.0, 80.0);
@@ -296,16 +297,18 @@ int main()
   pid.setupMove(1.2, Kim, Kdm);
   pid.move(450.0, -1.0, 200.0, 10.0, 75.0);
   pid.move(3000.0, -1.0, 400.0, 10.0, -80.0);
-  //Goal 2
+  // Goal 2
   pid.setupMove(3.0, Kim, Kdm);
   pid.move(1000.0, -1.0, -200.0, 30.0, 100.0);
   pid.setupMove(1.8, Kim, Kdm);
   pid.move(300.0, -1.0, 100.0, 100.0, 100.0);
   pid.setupMove(1.4, Kim, Kdm);
-  LM.setStopping(coast); RM.setStopping(coast);
+  LM.setStopping(coast);
+  RM.setStopping(coast);
   pid.move(1000.0, -1.0, 0.0, 100.0, -70.0);
   pid.setupMove(1.8, Kim, Kdm);
-  LM.setStopping(brake); RM.setStopping(brake);
-  //Supply zone phase
+  LM.setStopping(brake);
+  RM.setStopping(brake);
+  // Supply zone phase
   clearSupplyZone();
 }
