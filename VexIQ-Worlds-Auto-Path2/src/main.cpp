@@ -138,14 +138,15 @@ public:
     Kdm = d;
   }
 
-  void turn(float heading)
+  void turn(float heading, float cnt = 9999.0)
   {
     float previousError = heading - BrainInertial.rotation(degrees);
     float integral = 0.0;
     int count = 0, maxCount = 5;
+    float count2 = 0.0;
     RM.spin(forward);
     LM.spin(forward);
-    while (count < maxCount)
+    while (count < maxCount && count2 <= cnt)
     {
       float currentAngle = BrainInertial.rotation(degrees);
       float error = heading - currentAngle;
@@ -170,6 +171,7 @@ public:
         count += 1;
       else
         count = 0;
+      count2+=0.01;
       wait(10, msec);
       previousError = error;
     }
@@ -269,8 +271,8 @@ void clearSupplyZone()
   LM.stop(); RM.stop();
   pid.move(200.0, -1.0, 200.0, 90.0, -100.0);
   
-  minRotSpeed = 80.0;
-  pid.turn(120.0);
+  minRotSpeed = 70.0;
+  pid.turn(120.0, 1.5);
   
   pid.move(2000.0, -1.0, 200.0, 90.0, 100.0);
   LM.spin(forward); RM.spin(forward);
@@ -331,43 +333,49 @@ int main()
   // Autonomous path
   thread time_ = thread(time);
   RunIntake();
-  pid.move(4000.0, -10.0, -10.0, 0.0, 100.0);
+  pid.move(4000.0, -10.0, -10.0, 2.5, 100.0);
   wait(0.2, seconds);
-  pid.move(120.0, -10.0, 200.0, 0.0, -100.0);
+  pid.move(140.0, -10.0, 200.0, 0.0, -100.0);
   pid.turn(90.0);
+  pid.move(120.0, -10.0, 50.0, 90.0, -100.0);
   // Supply zone phase
   clearSupplyZone(); // This part good enough
   // Goal 1
-  minRotSpeed = 30.0;
-  pid.turn(-40.0);
-  pid.setupMove(4.0, Kim, Kdm);
-  pid.move(800.0, -1.0, 200.0, -70.0, 50.0);
+  minRotSpeed = 55.0;
+  pid.turn(-27.0);
+  pid.setupMove(3.0, Kim, Kdm);
+  pid.move(650.0, -1.0, 200.0, -70.0, 100.0);
   wait(1, seconds);
-  pid.move(200.0, -1.0, 200.0, -70.0, 50.0);
+  pid.move(150.0, -1.0, 200.0, -80.0, 100.0);
   wait(1, seconds);
-  pid.move(500.0, -1.0, 200.0, -70.0, 50.0);
+  pid.move(1000.0, -1.0, 200.0, -85.0, 100.0);
   wait(0.5, seconds);
   pid.setupMove(5.0, Kim, Kdm);
-  pid.move(220.0, -1.0, 10.0, -75.0, -100.0);
-  minRotSpeed = 60.0;
-  pid.turn(-110.0);
+  pid.move(220.0, -1.0, 10.0, -60.0, -100.0);
+  minRotSpeed = 100.0;
+  pid.turn(-200.0, 1.2);
+  LM.spin(forward); RM.spin(forward);
+  LM.setVelocity(100, percent); RM.setVelocity(-100, percent);
+  wait(0.5, seconds);
+  LM.stop(); RM.stop();
+  wait(0.5, seconds);
   pid.setupMove(2.6, Kim, Kdm);
-  pid.move(1300.0, -1.0, 100.0, -155.0, 50.0);
-  minRotSpeed = 60.0;
-  pid.turn(-190.0);
-  pid.move(1300.0, -1.0, -1.0, -190.0, -100.0);
+  pid.move(1300.0, -1.0, 100.0, -155.0, 100.0);
+  minRotSpeed = 75.0;
+  pid.turn(-190.0, 1.0);
+  pid.move(1500.0, -1.0, -1.0, -190.0, -100.0);
   PurpleStorage();
-  pid.move(100, -1.0, -1.0, -180, 100.0);
-  pid.move(100, -1.0, -1.0, -180, -100.0);
+  pid.move(100.0, -1.0, -1.0, -180.0, 100.0);
+  pid.move(1000.0, -1.0, -1.0, -180.0, -70.0);
   wait(0.75, seconds);
   Pneumatic4.extend(cylinder2);
   Pneumatic5.retract(cylinder2);
   // Goal 2:
-  pid.setupMove(4.0, Kim, Kdm);
-  pid.move(300.0, -1.0, -1.0, -210.0, 100.0);
-  pid.move(700.0, -1.0, 300.0, -225.0, 100.0);
-  pid.setupMove(2.0, Kim, Kdm);
-  pid.move(500.0, -1.0, 300.0, -240.0, 100.0);
+  pid.setupMove(5.0, Kim, Kdm);
+  pid.move(300.0, -1.0, -10.0, -218.0, 100.0);
+  pid.move(600.0, -1.0, -100.0, -225.0, 100.0);
+  pid.setupMove(2.7, Kim, Kdm);
+  pid.move(500.0, -1.0, 300.0, -250.0, 100.0);
   minRotSpeed = 60.0;
   pid.setupRotate(1.7, 0.0, 0.04);
   pid.turn(-275.0);
@@ -376,14 +384,9 @@ int main()
   //GreenStorage(1);
   //Goal 3:
   //pid.turn(-275);
-  pid.setupMove(3.0, Kim, Kdm);
-  pid.move(1300.0, -1.0, 200.0, -335.0, 100.0);
-  pid.move(450.0, -1.0, 200.0, -325.0, 100.0);
-  wait(0.5, seconds);
-  minRotSpeed = 60.0;
-  pid.turn(-370);
-  pid.move(650.0, -1.0, -1.0, -370.0, -100.0);
-  pid.move(1000, -1.0, -1.0, -360, 100.0);
+  pid.setupMove(5.0, Kim, Kdm);
+  pid.move(300.0, -1.0, 200.0, -285.0, 100.0);
+  pid.move(700.0, -1.0, 200.0, -300.0, 100.0);
   //if(Brain.Timer.value() >= 55) Intake.stop(), LM.stop(), RM.stop(), Elevator.stop();
   //pid.setupMove(1.8, Kim, Kdm);
   //pid.move(600.0, -1.0, -100.0, -320.0, 100.0);
