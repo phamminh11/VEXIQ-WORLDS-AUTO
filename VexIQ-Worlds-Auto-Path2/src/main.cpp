@@ -93,8 +93,23 @@ void PurpleStorage()
     Pneumatic4.extend(cylinder2);
     Pneumatic5.retract(cylinder2);
   }
-  wait(1, seconds);
-  
+}
+
+bool two_to_one = false;
+void SwitchGear()
+{
+  if (!two_to_one)
+  {
+    two_to_one = true;
+    Pneumatic4.retract(cylinder1);
+    Pneumatic5.retract(cylinder1);
+  }
+  else
+  {
+    two_to_one = false;
+    Pneumatic4.extend(cylinder1);
+    Pneumatic5.extend(cylinder1);
+  }
 }
 
 void GreenStorage(int level)
@@ -240,7 +255,7 @@ PID pid;
 void clearSupplyZone()
 {
   pid.setupMove(5.0, Kim, Kdm);
-  pid.move(2000.0, -1.0, 200.0, 70.0, 100.0);
+  pid.move(2000.0, -1.0, 200.0, 100.0, 100.0);
   LM.spin(forward); RM.spin(forward);
   LM.setVelocity(-100, percent); RM.setVelocity(100, percent);
   wait(0.5, seconds);
@@ -260,20 +275,24 @@ void clearSupplyZone()
   LM.setVelocity(100, percent); RM.setVelocity(-100, percent);
   wait(0.5, seconds);
   LM.setVelocity(-100, percent); RM.setVelocity(100, percent);
-  wait(1, seconds);
+  wait(1.0, seconds);
   LM.stop(); RM.stop();
 
   pid.move(100.0, -1.0, 0.0, 90.0, -100.0);
-  pid.move(2000.0, -1.0, 200.0, 90.0, 100.0);  
-  LM.spin(forward); RM.spin(forward);
-  LM.setVelocity(-100, percent); RM.setVelocity(100, percent);
-  wait(1, seconds);
-  LM.stop(); RM.stop();
+  for(int i = 0; i < 2; i++){
+    LM.spin(forward); RM.spin(forward);
+    LM.setVelocity(100, percent); RM.setVelocity(100, percent);
+    wait(0.7, seconds);
+    LM.setVelocity(-100, percent); RM.setVelocity(-100, percent);
+    wait(0.35, seconds);
+    LM.stop(); RM.stop();
+    wait(0.4, seconds);
+  }
   pid.move(200.0, -1.0, 200.0, 90.0, -100.0);
   
-  minRotSpeed = 70.0;
-  pid.turn(120.0, 1.5);
-  
+  minRotSpeed = 80.0;
+  pid.turn(125.0, 1.5);
+
   pid.move(2000.0, -1.0, 200.0, 90.0, 100.0);
   LM.spin(forward); RM.spin(forward);
   LM.setVelocity(-100, percent); RM.setVelocity(100, percent);
@@ -287,8 +306,16 @@ void clearSupplyZone()
   LM.stop(); RM.stop();
 
   pid.move(100.0, -1.0, 0.0, 90.0, -100.0);
-  pid.move(2000.0, -1.0, 200.0, 90.0, 100.0);  
-  pid.move(500.0, -1.0, 200.0, 90.0, -100.0);
+  for(int i = 0; i < 2; i++){
+    LM.spin(forward); RM.spin(forward);
+    LM.setVelocity(100, percent); RM.setVelocity(100, percent);
+    wait(0.7, seconds);
+    LM.setVelocity(-100, percent); RM.setVelocity(-100, percent);
+    wait(0.35, seconds);
+    LM.stop(); RM.stop();
+    wait(0.4, seconds);
+  }
+  pid.move(400.0, -1.0, 200.0, 90.0, -100.0);
 }
 
 void setup()
@@ -333,34 +360,33 @@ int main()
   // Autonomous path
   thread time_ = thread(time);
   RunIntake();
-  pid.move(4000.0, -10.0, -10.0, 2.5, 100.0);
-  wait(0.2, seconds);
-  pid.move(140.0, -10.0, 200.0, 0.0, -100.0);
+  pid.move(4000.0, -10.0, -10.0, 5.0, 100.0);
+  pid.move(140.0, -10.0, 10.0, 0.0, -100.0);
   pid.turn(90.0);
-  pid.move(120.0, -10.0, 50.0, 90.0, -100.0);
-  // Supply zone phase
-  clearSupplyZone(); // This part good enough
+  pid.move(120.0, -10.0, 50.0, 90.0, -100.0); //May be optimized
+  //Supply zone phase
+  clearSupplyZone(); // Good enough but luck based and may need optimization
   // Goal 1
-  minRotSpeed = 55.0;
-  pid.turn(-27.0);
-  pid.setupMove(3.0, Kim, Kdm);
-  pid.move(650.0, -1.0, 200.0, -70.0, 100.0);
+  minRotSpeed = 60.0;
+  pid.turn(-30.0);
+  pid.setupMove(3.2, Kim, Kdm);
+  wait(0.3, seconds);
+  pid.move(650.0, -1.0, 200.0, -75.0, 100.0);
   wait(1, seconds);
-  pid.move(150.0, -1.0, 200.0, -80.0, 100.0);
+  pid.move(150.0, -1.0, 200.0, -85.0, 100.0);
   wait(1, seconds);
-  pid.move(1000.0, -1.0, 200.0, -85.0, 100.0);
+  pid.move(1000.0, -1.0, 200.0, -90.0, 100.0);
   wait(0.5, seconds);
   pid.setupMove(5.0, Kim, Kdm);
-  pid.move(220.0, -1.0, 10.0, -60.0, -100.0);
-  minRotSpeed = 100.0;
-  pid.turn(-200.0, 1.2);
-  LM.spin(forward); RM.spin(forward);
-  LM.setVelocity(100, percent); RM.setVelocity(-100, percent);
+  pid.move(250.0, -1.0, 10.0, -75.0, -100.0);
   wait(0.5, seconds);
-  LM.stop(); RM.stop();
-  wait(0.5, seconds);
+  SwitchGear();
+  minRotSpeed = 100.0; //What if we switch to 1:2 gear for this part?
+  pid.turn(-119.0, 3.0); //Slow but precise rotation with enough torque for rotating near wals
   pid.setupMove(2.6, Kim, Kdm);
-  pid.move(1300.0, -1.0, 100.0, -155.0, 100.0);
+  wait(0.3, seconds);
+  SwitchGear();
+  pid.move(1300.0, -1.0, 100.0, -170.0, 100.0);
   minRotSpeed = 75.0;
   pid.turn(-190.0, 1.0);
   pid.move(1500.0, -1.0, -1.0, -190.0, -100.0);
@@ -368,14 +394,18 @@ int main()
   pid.move(100.0, -1.0, -1.0, -180.0, 100.0);
   pid.move(1000.0, -1.0, -1.0, -180.0, -70.0);
   wait(0.75, seconds);
-  Pneumatic4.extend(cylinder2);
-  Pneumatic5.retract(cylinder2);
+  PurpleStorage();
   // Goal 2:
-  pid.setupMove(5.0, Kim, Kdm);
-  pid.move(300.0, -1.0, -10.0, -218.0, 100.0);
-  pid.move(600.0, -1.0, -100.0, -225.0, 100.0);
-  pid.setupMove(2.7, Kim, Kdm);
-  pid.move(500.0, -1.0, 300.0, -250.0, 100.0);
+  pid.setupMove(3.0, Kim, Kdm);
+  pid.move(200.0, -1.0, 100.0, -210.0, 100.0);
+  wait(0.5, seconds);
+  minRotSpeed = 100.0;
+  SwitchGear();
+  pid.turn(-210.0);
+  wait(0.5, seconds);
+  SwitchGear();
+  pid.move(600.0, -1.0, 300.0, -210.0, 100.0);
+  pid.move(600.0, -1.0, 300.0, -260.0, 100.0);
   minRotSpeed = 60.0;
   pid.setupRotate(1.7, 0.0, 0.04);
   pid.turn(-275.0);
@@ -383,18 +413,9 @@ int main()
   pid.move(700.0, -1.0, 300.0, -280.0, -100.0);
   //GreenStorage(1);
   //Goal 3:
-  //pid.turn(-275);
   pid.setupMove(5.0, Kim, Kdm);
   pid.move(300.0, -1.0, 200.0, -285.0, 100.0);
   pid.move(700.0, -1.0, 200.0, -300.0, 100.0);
-  //if(Brain.Timer.value() >= 55) Intake.stop(), LM.stop(), RM.stop(), Elevator.stop();
-  //pid.setupMove(1.8, Kim, Kdm);
-  //pid.move(600.0, -1.0, -100.0, -320.0, 100.0);
-  //pid.move(1200.0, -1.0, 100.0, 90.0, 100.0);
-  //GreenStorage(1);
-  // Full park
-  //pid.move(500, -1.0, -1.0, 0, 100.0);
-  // Intake.stop();
-  // LM.stop();
-  // RM.stop();
+  
+  //Full Park
 }
