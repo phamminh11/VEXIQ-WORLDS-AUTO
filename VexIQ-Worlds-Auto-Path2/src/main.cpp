@@ -230,6 +230,7 @@ void clearSupplyZone()
 {
   pid.setupMove(3.0, Kim, Kdm);
   pid.move(450.0, -1.0, 100.0, 90.0, 100.0);
+  pid.move(50.0, -1.0, 10.0, 90.0, -100.0);
   wait(0.8, seconds);
   LM.spin(forward);
   RM.spin(forward);
@@ -259,8 +260,8 @@ void clearSupplyZone()
   }
   pid.move(180.0, -1.0, 100.0, 90.0, -100.0);
   wait(0.5, seconds);
-  minRotSpeed = 60.0;
-  pid.turn(135.0, 1.3);
+  minRotSpeed = 70.0;
+  pid.turn(138.0, 1.3);
   pid.setupMove(1.0, Kim, Kdm);
   pid.move(100.0, -1.0, 100.0, 90.0, 50.0);
   for(int i = 0; i < 2; i++){
@@ -327,17 +328,17 @@ int main()
   // Autonomous path
   RunIntake();
   minRotSpeed = 15.0;
-  pid.move(1150.0, -10.0, -10.0, 5.0, 100.0);
-  pid.turn(78.0, 2.0);
-  pid.move(100.0, -1.0, 10.0, 78.0, -40.0);
+  pid.move(1150.0, -10.0, -10.0, 7.0, 100.0);
+  pid.turn(75.0, 2.0);
+  pid.move(60.0, -1.0, 10.0, 75.0, -40.0);
 
   //pid.move(80.0, -10.0, 50.0, 80.0, -50.0);
   // Supply zone phase
   clearSupplyZone(); // Need improvement for more green
   // Goal 1
-  minRotSpeed = 25.0;
+  minRotSpeed = 15.0;
   pid.turn(-30.0, 2.5);
-  pid.setupMove(2.0, Kim, Kdm);
+  pid.setupMove(1.7, Kim, Kdm);
   wait(0.3, seconds);
   //pid.move(100.0, -1.0, -200.0, -45.0, 60.0);
   pid.move(450.0, -1.0, 100.0, -70.0, 60.0); //Stopping too much
@@ -351,9 +352,12 @@ int main()
   SwitchGear(); // Near wall: switch gear for more torque
   minRotSpeed = 100.0; //Slow but precise rotation with 4x torque
   pid.turn(-119.0, 3.0);
-  pid.setupMove(2.5, Kim, Kdm);
+  wait(0.3, seconds);
   SwitchGear(); // Back to 2:1
-  pid.move(200.0, -1.0, -1.0, -119.0, 100.0);
+  //wait(1000, seconds);
+  pid.setupMove(5.0, Kim, Kdm);
+  pid.move(200.0, 50.0, -1.0, -130.0, 100.0);
+  pid.setupMove(2.7, Kim, Kdm);
   pid.move(800.0, -1.0, -100.0, -160.0, 100.0);
   pid.move(250.0, -1.0, 100.0, -170.0, 50.0);
   minRotSpeed = 80.0;
@@ -380,18 +384,17 @@ int main()
   PurpleStorage();
   pid.setupMove(3.0, Kim, Kdm);
   pid.move(600.0, -1.0, -300.0, -208.0, 100.0);
-  pid.move(500.0, -1.0, 300.0, -230.0, 100.0);
+  pid.move(550.0, -1.0, 300.0, -233.0, 100.0);
   minRotSpeed = 70.0;
   pid.setupRotate(2.0, 0.0, 0.04);
   pid.turn(-280.0, 1.0);
-  pid.move(130.0, -1.0, -10.0, -290.0, 40.0);
+  pid.move(150.0, -1.0, -10.0, -290.0, 40.0);
   pid.setupMove(2.0, Kim, Kdm);
-  pid.move(1000.0, -1.0, 300.0, -285.0, -100.0);
   RunIntake();
+  thread pour_green = thread([]{Elevator.setVelocity(30, percent); Elevator.spin(reverse); wait(0.5, seconds); Elevator.setVelocity(100, percent); Elevator.setPosition(0, turns); Elevator.spinToPosition(-1.2, turns);});
+  pid.move(1000.0, -1.0, 300.0, -285.0, -100.0);
+  wait(1, seconds);
   //Green 1
-  Elevator.spin(reverse);
-  wait(1.4, seconds);
-  Elevator.stop();
   pid.move(80.0, -1.0, 10.0, -270.0, 100.0);
   pid.move(150.0, -1.0, 10.0, -280.0, -100.0);
   wait(0.7, seconds);
@@ -400,16 +403,18 @@ int main()
   pid.setupMove(5.0, Kim, Kdm);
   pid.move(600.0, -1.0, -200.0, -290.0, 100.0);
   pid.move(700.0, -1.0, -200.0, -300.0, 100.0);
-  pid.move(450.0, -1.0, 200.0, -310.0, 100.0);
-  pid.setupMove(3.5, Kim, Kdm);
+  pid.move(420.0, -1.0, 200.0, -310.0, 100.0);
+  pid.setupMove(4.0, Kim, Kdm);
+  pid.setupRotate(2.7, Kir, Kdr);
   minRotSpeed = 60.0;
-  pid.turn(-365.0, 2.0);
-  wait(0.3, seconds);
+  pid.turn(-370.0, 2.0);
+  wait(0.6, seconds);
   RunIntake();
   //Green ams
   Elevator.spin(reverse);
-  pid.move(1500.0, -1.0, -1.0, -365.0, -100.0);
-  wait(2.0, seconds);
+  LM.setStopping(coast); RM.setStopping(coast);
+  pid.move(1500.0, -1.0, -1.0, -363.0, -100.0);
+  wait(1.0, seconds);
   RunIntake();
   // Park
   pid.move(900.0, -1.0, -1.0, -370.0, 100.0);
