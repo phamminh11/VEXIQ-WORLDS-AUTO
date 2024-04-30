@@ -38,6 +38,7 @@ motor_group Elevator = motor_group(ElevatorMotorA, ElevatorMotorB);
 
 pneumatic Pneumatic4 = pneumatic(PORT2);
 pneumatic Pneumatic5 = pneumatic(PORT7);
+touchled TouchLED = touchled(PORT5);
 
 #pragma endregion VEXcode Generated Robot Configuration
 
@@ -53,12 +54,14 @@ bool runIntake = false;
 
 void RunIntake()
 {
-  if (!runIntake){
+  if (!runIntake)
+  {
     runIntake = true;
     Intake.spin(forward);
     Elevator.spin(forward);
   }
-  else{
+  else
+  {
     runIntake = false;
     Intake.stop();
     Elevator.stop();
@@ -221,7 +224,7 @@ public:
 };
 
 float Kpr = 1.0, Kdr = 0.05, Kir = 0.0; // Default PID rotation value
-float Kpm = 10.0, Kdm = 0.0, Kim = 0.0;  // Defailt PID movement value
+float Kpm = 10.0, Kdm = 0.0, Kim = 0.0; // Defailt PID movement value
 float defaultAccelDistance = 500.0;
 float defaultBrakeDistance = 200.0;
 PID pid;
@@ -242,11 +245,13 @@ void clearSupplyZone()
   wait(0.4, seconds);
   LM.stop();
   RM.stop();
-  for(int i = 0; i < 2; i++){
+  for (int i = 0; i < 2; i++)
+  {
     wait(0.8, seconds);
     pid.move(50.0, -1.0, 10.0, 90.0, -40.0);
     pid.move(150.0, -1.0, 10.0, 90.0, 40.0);
-    if(i==2) continue;
+    if (i == 2)
+      continue;
     LM.spin(forward);
     RM.spin(forward);
     LM.setVelocity(100, percent);
@@ -264,11 +269,13 @@ void clearSupplyZone()
   pid.turn(138.0, 1.3);
   pid.setupMove(1.0, Kim, Kdm);
   pid.move(100.0, -1.0, 100.0, 90.0, 50.0);
-  for(int i = 0; i < 2; i++){
+  for (int i = 0; i < 2; i++)
+  {
     wait(0.75, seconds);
     pid.move(50.0, -1.0, 10.0, 90.0, -40.0);
     pid.move(150.0, -1.0, 10.0, 90.0, 40.0);
-    if(i==2) continue;
+    if (i == 2)
+      continue;
     LM.spin(forward);
     RM.spin(forward);
     LM.setVelocity(100, percent);
@@ -283,7 +290,7 @@ void clearSupplyZone()
   minRotSpeed = 50.0;
   pid.turn(90.0, 1.0);
   pid.move(430.0, -1.0, 200.0, 90.0, -100.0);
-  //wait(1000, seconds);
+  // wait(1000, seconds);
 }
 
 void setup()
@@ -324,15 +331,21 @@ void time()
 
 int main()
 {
+  TouchLED.setColor(orange);
+
+  while (!TouchLED.pressing())
+  {
+    wait(20, msec);
+  }
+
+  TouchLED.setColor(violet);
   setup();
   // Autonomous path
   RunIntake();
   minRotSpeed = 15.0;
   pid.move(1150.0, -10.0, -10.0, 7.0, 100.0);
   pid.turn(75.0, 2.0);
-  pid.move(60.0, -1.0, 10.0, 75.0, -40.0);
-
-  //pid.move(80.0, -10.0, 50.0, 80.0, -50.0);
+  pid.move(80.0, -10.0, 50.0, 80.0, -50.0);
   // Supply zone phase
   clearSupplyZone(); // Need improvement for more green
   // Goal 1
@@ -340,33 +353,47 @@ int main()
   pid.turn(-30.0, 2.5);
   pid.setupMove(1.7, Kim, Kdm);
   wait(0.3, seconds);
-  //pid.move(100.0, -1.0, -200.0, -45.0, 60.0);
-  pid.move(450.0, -1.0, 100.0, -70.0, 60.0); //Stopping too much
+  // pid.move(100.0, -1.0, -200.0, -45.0, 60.0);
+  pid.move(450.0, -1.0, 100.0, -70.0, 60.0); // Stopping too much
   wait(0.7, seconds);
   // pid.move(180.0, -1.0, -100.0, -85.0, 100.0);
   // wait(0.4, seconds);
-  pid.move(500.0, -1.0, 100.0, -85.0, 60.0);
+  pid.move(530.0, -1.0, 100.0, -85.0, 60.0);
   // pid.setupMove(5.0, Kim, Kdm);
   // pid.move(250.0, -1.0, 10.0, -75.0, -100.0);
   wait(0.3, seconds);
-  SwitchGear(); // Near wall: switch gear for more torque
-  minRotSpeed = 100.0; //Slow but precise rotation with 4x torque
-  pid.turn(-119.0, 3.0);
+  SwitchGear();        // Near wall: switch gear for more torque
+  minRotSpeed = 100.0; // Slow but precise rotation with 4x torque
+  pid.turn(-130.0, 3.0);
   wait(0.3, seconds);
   SwitchGear(); // Back to 2:1
-  //wait(1000, seconds);
+  // wait(1000, seconds);
   pid.setupMove(5.0, Kim, Kdm);
-  pid.move(200.0, 50.0, -1.0, -130.0, 100.0);
+  pid.move(150.0, 50.0, -1.0, -130.0, 100.0);
   pid.setupMove(2.7, Kim, Kdm);
-  pid.move(800.0, -1.0, -100.0, -160.0, 100.0);
-  pid.move(250.0, -1.0, 100.0, -170.0, 50.0);
-  minRotSpeed = 80.0;
-  LM.spin(forward); RM.spin(forward);
-  LM.setVelocity(-100.0, percent); RM.setVelocity(100.0, percent);
+  // pid.move(50.0, -1.0, -100.0, -130.0, 170);
+  LM.spin(forward);
+  RM.spin(forward);
+  LM.setVelocity(100.0, percent);
+  RM.setVelocity(-100.0, percent);
   wait(0.3, seconds);
-  LM.stop(); RM.stop();
+  // LM.spin(forward); RM.spin(forward);
+  LM.setVelocity(-100.0, percent);
+  RM.setVelocity(+100.0, percent);
+  wait(0.3, seconds);
+  pid.move(600.0, -1.0, -100.0, -160.0, 100.0);
+  pid.move(200.0, -1.0, 100.0, -170.0, 50.0);
+  minRotSpeed = 80.0;
+  LM.spin(forward);
+  RM.spin(forward);
+  LM.setVelocity(-100.0, percent);
+  RM.setVelocity(100.0, percent);
+  wait(0.3, seconds);
+  LM.stop();
+  RM.stop();
   pid.setupMove(2.0, Kim, Kdm);
-  thread dropPurple = thread([]{wait(1.72, seconds); PurpleStorage();} );
+  thread dropPurple = thread([]
+                             {wait(1.72, seconds); PurpleStorage(); });
   pid.move(350.0, -1.0, -1.0, -190.0, -100.0);
   pid.move(1000.0, -1.0, -1.0, -190.0, -60.0);
   wait(0.7, seconds);
@@ -378,44 +405,51 @@ int main()
   wait(0.3, seconds);
   minRotSpeed = 100.0;
   SwitchGear();
-  pid.turn(-208.0);
+  pid.turn(-206.0);
   wait(0.3, seconds);
   SwitchGear();
   PurpleStorage();
   pid.setupMove(3.0, Kim, Kdm);
-  pid.move(600.0, -1.0, -300.0, -208.0, 100.0);
+  pid.move(600.0, -1.0, -300.0, -206.0, 100.0);
   pid.move(550.0, -1.0, 300.0, -233.0, 100.0);
   minRotSpeed = 70.0;
   pid.setupRotate(2.0, 0.0, 0.04);
+  RunIntake();
   pid.turn(-280.0, 1.0);
   pid.move(150.0, -1.0, -10.0, -290.0, 40.0);
   pid.setupMove(2.0, Kim, Kdm);
-  RunIntake();
-  thread pour_green = thread([]{Elevator.setVelocity(30, percent); Elevator.spin(reverse); wait(0.5, seconds); Elevator.setVelocity(100, percent); Elevator.setPosition(0, turns); Elevator.spinToPosition(-1.2, turns);});
+  thread pour_green = thread([]
+                             { wait(0.5, seconds);Elevator.setVelocity(100, percent); Elevator.setPosition(0, turns); Elevator.spinToPosition(-1.5, turns); });
   pid.move(1000.0, -1.0, 300.0, -285.0, -100.0);
-  wait(1, seconds);
-  //Green 1
+  // Elevator.setVelocity(100, percent);
+  // Elevator.setPosition(0, turns);
+  // Elevator.spinToPosition(1.5, turns);
+  // Green 1
   pid.move(80.0, -1.0, 10.0, -270.0, 100.0);
-  pid.move(150.0, -1.0, 10.0, -280.0, -100.0);
-  wait(0.7, seconds);
+  pid.move(100.0, -1.0, 10.0, -280.0, -100.0);
+  wait(0.5, seconds);
   RunIntake();
   // Goal 3:
-  pid.setupMove(5.0, Kim, Kdm);
+  pid.setupMove(3.9, Kim, Kdm);
   pid.move(600.0, -1.0, -200.0, -290.0, 100.0);
   pid.move(700.0, -1.0, -200.0, -300.0, 100.0);
-  pid.move(420.0, -1.0, 200.0, -310.0, 100.0);
-  pid.setupMove(4.0, Kim, Kdm);
-  pid.setupRotate(2.7, Kir, Kdr);
-  minRotSpeed = 60.0;
-  pid.turn(-370.0, 2.0);
-  wait(0.6, seconds);
+  pid.setupMove(4.5, Kim, Kdm);
+  pid.move(425.0, -1.0, 200.0, -310.0, 100.0);
+  pid.setupMove(4.15, Kim, Kdm);
+  pid.setupRotate(1.8, Kir, Kdr);
+  minRotSpeed = 30.0;
+  pid.turn(-375.0, 3.0);
+  wait(0.2, seconds);
   RunIntake();
-  //Green ams
+  // Green ams
   Elevator.spin(reverse);
-  LM.setStopping(coast); RM.setStopping(coast);
-  pid.move(1500.0, -1.0, -1.0, -363.0, -100.0);
+  LM.setStopping(coast);
+  RM.setStopping(coast);
+  pid.move(1500.0, -1.0, -1.0, -375.0, -100.0);
   wait(1.0, seconds);
   RunIntake();
+  LM.spin(forward);
+  RM.spin(forward);
   // Park
-  pid.move(900.0, -1.0, -1.0, -370.0, 100.0);
+  pid.move(900.0, -1.0, -1.0, -360.0, 100.0);
 }
