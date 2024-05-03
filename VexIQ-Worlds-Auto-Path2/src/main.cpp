@@ -39,6 +39,7 @@ motor_group Elevator = motor_group(ElevatorMotorA, ElevatorMotorB);
 pneumatic Pneumatic4 = pneumatic(PORT2);
 pneumatic Pneumatic5 = pneumatic(PORT7);
 touchled TouchLED = touchled(PORT5);
+optical Optical10 = optical(PORT10);
 
 #pragma endregion VEXcode Generated Robot Configuration
 
@@ -316,6 +317,8 @@ void setup()
   Brain.Screen.print("Calibrated");
   pid.setupRotate(Kpr, Kir, Kdr);
   pid.setupMove(Kpm, Kim, Kdm);
+  Optical10.setLight(ledState::on);
+  Optical10.setLightPower(100, percent);
 }
 
 void time()
@@ -349,7 +352,7 @@ int main()
   // Supply zone phase
   clearSupplyZone(); // Need improvement for more green
   // Goal 1
-  minRotSpeed = 15.0;
+  minRotSpeed = 35.0;
   pid.turn(-30.0, 2.5);
   pid.setupMove(1.7, Kim, Kdm);
   wait(0.3, seconds);
@@ -418,7 +421,8 @@ int main()
   pid.turn(-280.0, 1.0);
   pid.move(150.0, -1.0, -10.0, -290.0, 40.0);
   pid.setupMove(2.0, Kim, Kdm);
-  thread pour_green = thread([]{ Elevator.setPosition(0, turns); wait(0.5, seconds); Elevator.setVelocity(100, percent); while(Elevator.position(turns) > -1.54){ Elevator.spin(reverse); wait(5, msec);} TouchLED.setColor(red); Elevator.stop(); });
+  thread pour_green = thread([]
+                             { Elevator.setPosition(0, turns); wait(0.7, seconds); Elevator.setVelocity(100, percent); while(Optical10.color() != blue){ Elevator.spin(reverse);} TouchLED.setColor(red); Elevator.stop(); });
   pid.move(1000.0, -1.0, 300.0, -285.0, -100.0);
   // Elevator.setVelocity(100, percent);
   // Elevator.setPosition(0, turns);
@@ -436,16 +440,17 @@ int main()
   pid.setupMove(1.5, Kim, Kdm);
   pid.setupRotate(1.8, Kir, Kdr);
   minRotSpeed = 30.0;
-  pid.turn(-380.0, 3.0);
+  pid.turn(-380.0, 1.0);
   wait(0.2, seconds);
   RunIntake();
   // Green ams
-  thread pour_green2 = thread([]{Elevator.spin(reverse); wait(1.9, seconds); Elevator.stop();});
-  
+  thread pour_green2 = thread([]
+                              {wait(0.5, seconds); Elevator.spin(reverse); wait(1.9, seconds); Elevator.stop(); });
+
   LM.setStopping(coast);
   RM.setStopping(coast);
   pid.move(1500.0, -1.0, -1.0, -365.0, -100.0);
-  wait(1.9, seconds);
+  wait(1.5, seconds);
   RunIntake();
   LM.spin(forward);
   RM.spin(forward);
